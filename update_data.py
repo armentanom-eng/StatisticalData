@@ -1,37 +1,28 @@
-name: Auto Update Superenalotto
+import requests
+from bs4 import BeautifulSoup
+import csv
 
-on:
-  workflow_dispatch:
-  schedule:
-    - cron: '10 5 * * *'
+# Questa è la maschera per sembrare un browser
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+}
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+def scarica_dati():
+    url = "https://www.superenalotto.net/" # Inserisci qui l'url corretto
+    try:
+        response = requests.get(url, headers=headers, timeout=30)
+        response.raise_for_status()
+        
+        # --- QUI VA LA TUA LOGICA ORIGINALE ---
+        # Esempio:
+        # soup = BeautifulSoup(response.text, 'html.parser')
+        # ... estrai i dati ...
+        # ... salva il CSV ...
+        print("Dati scaricati con successo!")
+        
+    except Exception as e:
+        print(f"Errore durante l'aggiornamento: {e}")
+        exit(1) 
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install requests beautifulsoup4
-
-      - name: Run update script
-        run: python update_data.py
-
-      - name: Commit and push changes
-        run: |
-          git config --global user.name "GitHub Action"
-          git config --global user.email "action@github.com"
-          git add storico_completo.csv
-          git commit -m "Aggiornamento automatico estrazione" || exit 0
-          git push origin main
+if __name__ == "__main__":
+    scarica_dati()
