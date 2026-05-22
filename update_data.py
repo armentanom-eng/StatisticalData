@@ -5,10 +5,18 @@ import os
 
 def scarica_e_aggiorna():
     url = "https://www.superenalotto.net/"
-    scraper = cloudscraper.create_scraper()
     file_csv = 'storico_completo.csv'
     
-    # Dizionario per tradurre i mesi estesi in abbreviazioni
+    # Configuriamo il browser per sembrare un vero utente
+    scraper = cloudscraper.create_scraper(
+        browser={'browser': 'firefox', 'platform': 'windows', 'desktop': True}
+    )
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept-Language": "it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7"
+    }
+    
+    # Mappa per trasformare i mesi
     mesi_map = {
         'gennaio': 'gen', 'febbraio': 'feb', 'marzo': 'mar', 'aprile': 'apr',
         'maggio': 'mag', 'giugno': 'giu', 'luglio': 'lug', 'agosto': 'ago',
@@ -16,70 +24,63 @@ def scarica_e_aggiorna():
     }
 
     try:
-        response = scraper.get(url, timeout=30)
+        # Tentiamo il download con timeout esteso
+        response = scraper.get(url, timeout=60, headers=headers)
+        response.raise_for_status()
         soup = BeautifulSoup(response.text, 'html.parser')
         
         # 1. ESTRAZIONE DATA
-        # Cerchiamo lo span con classe 'date' come visto nello screenshot
         data_span = soup.find('span', class_='date')
         data_estrazione = "data-ignota"
         if data_span:
-            # Esempio testo: "Giovedì 21 maggio 2026"
             testo = data_span.get_text(strip=True).lower()
-            parti = testo.split() 
-            # Dividiamo: ["giovedì", "21", "maggio", "2026"]
+            parti = testo.split()
             if len(parti) >= 3:
-                giorno = parti[1].zfill(2) # Forza 2 cifre (es: 01 invece di 1)
+                giorno = parti[1].zfill(2)
                 mese_full = parti[2]
-                mese = mesi_map.get(mese_full, mese_full[:3]) # Prende abbreviazione
+                mese = mesi_map.get(mese_full, mese_full[:3])
                 data_estrazione = f"{giorno}-{mese}"
 
         # 2. ESTRAZIONE NUMERI
         container = soup.find('ul', class_='balls')
         if not container:
-            print("Nessun container trovato.")
+            print("Errore: Container 'balls' non trovato.")
             return
 
-        # Estraiamo i 6 numeri + Jolly + Superstar
         numeri = [li.get_text(strip=True) for li in container.find_all('li', class_=['ball', 'jolly', 'superstar'])]
         
         if len(numeri) != 8:
-            print(f"Dati non completi: trovati {len(numeri)} elementi.")
+            print(f"Errore: Trovati {len(numeri)} elementi, attesi 8.")
             return
 
         riga_nuova = [data_estrazione] + numeri
 
-        # 3. SCRITTURA SICURA E PULITA
-        # Leggiamo il file per verificare se è già presente l'estrazione
+        # 3. CONTROLLO DUPLICATI
         if os.path.exists(file_csv):
             with open(file_csv, 'r', encoding='utf-8') as f:
                 reader = list(csv.reader(f, delimiter=';'))
-                if reader:
-                    ultima_riga = reader[-1]
-                    # Se l'ultima riga è identica (data + numeri), fermiamoci
-                    if ultima_riga == riga_nuova:
-                        print("Estrazione già aggiornata.")
-                        return
+                if reader and reader[-1] == riga_nuova:
+                    print("Estrazione già presente. Nessuna modifica.")
+                    return
 
-        # 4. SCRITTURA
-        # Verifichiamo se serve un "a capo" prima di scrivere
+        # 4. SCRITTURA SICURA (evita righe vuote e accodamenti errati)
         file_esiste = os.path.exists(file_csv) and os.path.getsize(file_csv) > 0
         
         with open(file_csv, 'a', newline='', encoding='utf-8') as f:
             if file_esiste:
-                # Controlliamo l'ultimo byte del file
+                # Controlla se l'ultima riga finisce con a capo
                 with open(file_csv, 'rb') as f_check:
                     f_check.seek(-1, os.SEEK_END)
                     if f_check.read(1) != b'\n':
-                        f.write('\n') # Forza l'a capo se mancante
+                        f.write('\n')
             
             writer = csv.writer(f, delimiter=';')
             writer.writerow(riga_nuova)
             
-        print(f"Salvataggio effettuato: {riga_nuova}")
+        print(f"Salvataggio completato: {riga_nuova}")
 
     except Exception as e:
-        print(f"Errore: {e}")
+        print(f"Errore durante l'esecuzione: {e}")
 
 if __name__ == "__main__":
     scarica_e_aggiorna()
