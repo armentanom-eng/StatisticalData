@@ -3,7 +3,7 @@ name: Auto Update Superenalotto
 on:
   workflow_dispatch:
   schedule:
-    - cron: '10 5 * * *'
+    - cron: '45 8 * * *'
 
 jobs:
   build:
