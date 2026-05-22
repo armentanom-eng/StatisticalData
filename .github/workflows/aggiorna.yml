@@ -35,5 +35,3 @@ jobs:
           git add storico_completo.csv
           git commit -m "Aggiornamento automatico estrazione" || exit 0
           git push origin main
-
- 
