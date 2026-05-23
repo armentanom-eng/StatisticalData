@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   schedule:
     # Se vuoi le 11:00 italiane, imposta 9:00 UTC
-    - cron: '10 5 * * *'
+    - cron: '27 5 * * *'
     # Se vuoi le 23:00 italiane, imposta 21:00 UTC
     - cron: '0 21 * * *'
 
