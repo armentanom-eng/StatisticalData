@@ -3,8 +3,10 @@ name: Auto Update Superenalotto
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 11 * * *'
-    - cron: '0 23 * * *'
+    # Se vuoi le 11:00 italiane, imposta 9:00 UTC
+    - cron: '10 5 * * *'
+    # Se vuoi le 23:00 italiane, imposta 21:00 UTC
+    - cron: '0 21 * * *'
 
 jobs:
   build:
@@ -33,6 +35,11 @@ jobs:
         run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
-          git add storico_completo.csv
-          git commit -m "Aggiornamento automatico estrazione" || exit 0
-          git push origin main
+          # Controlla se ci sono modifiche prima di fare commit
+          if [[ -n $(git status --porcelain) ]]; then
+            git add storico_completo.csv
+            git commit -m "Aggiornamento automatico estrazione"
+            git push origin main
+          else
+            echo "Nessuna modifica da salvare."
+          fi
